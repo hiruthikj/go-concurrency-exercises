@@ -22,12 +22,13 @@ type User struct {
 	TimeUsed  int64 // in seconds
 }
 
-var timeLimit = 10 * time.Second
+var timeLimitInSeconds int64 = 10
 
 // HandleRequest runs the processes requested by users. Returns false
 // if process had to be killed
 func HandleRequest(process func(), u *User) bool {
 	processDone := make(chan interface{})
+	ticker := time.NewTicker(1 * time.Second)
 
 	go func() {
 		process()
@@ -36,8 +37,12 @@ func HandleRequest(process func(), u *User) bool {
 
 	for {
 		select {
-		case <-time.After(timeLimit):
-			return u.IsPremium
+		case <-ticker.C:
+			// fmt.Printf("tick %v\n", time.Now().Unix() )
+			u.TimeUsed += 1
+			if u.TimeUsed >= timeLimitInSeconds {
+				return u.IsPremium
+			}
 		case <-processDone:
 			return true
 		}
