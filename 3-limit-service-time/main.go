@@ -27,8 +27,6 @@ var timeLimit = 10 * time.Second
 // HandleRequest runs the processes requested by users. Returns false
 // if process had to be killed
 func HandleRequest(process func(), u *User) bool {
-	timer := time.NewTimer(timeLimit)
-
 	processDone := make(chan interface{})
 
 	go func() {
@@ -38,7 +36,7 @@ func HandleRequest(process func(), u *User) bool {
 
 	for {
 		select {
-		case <-timer.C:
+		case <-time.After(timeLimit):
 			return u.IsPremium
 		case <-processDone:
 			return true
