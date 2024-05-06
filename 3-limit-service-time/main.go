@@ -11,6 +11,7 @@
 package main
 
 import (
+	"sync"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type User struct {
 	ID        int
 	IsPremium bool
 	TimeUsed  int64 // in seconds
+	mu sync.Mutex
 }
 
 var timeLimitInSeconds int64 = 10
@@ -28,7 +30,6 @@ var timeLimitInSeconds int64 = 10
 // if process had to be killed
 func HandleRequest(process func(), u *User) bool {
 	processDone := make(chan interface{})
-	ticker := time.NewTicker(1 * time.Second)
 
 	go func() {
 		process()
@@ -37,12 +38,14 @@ func HandleRequest(process func(), u *User) bool {
 
 	for {
 		select {
-		case <-ticker.C:
-			// fmt.Printf("tick %v\n", time.Now().Unix() )
+		case <-time.Tick(1 * time.Second):
+			u.mu.Lock()
 			u.TimeUsed += 1
 			if u.TimeUsed >= timeLimitInSeconds {
+				u.mu.Unlock()
 				return u.IsPremium
 			}
+			u.mu.Unlock()
 		case <-processDone:
 			return true
 		}
